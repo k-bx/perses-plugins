@@ -12,7 +12,9 @@
     },
     "sort": "desc",
     "mode": "value",
+    "donut": true,
     "radius": 50,
-    "showLabels": true
+    "showLabels": true,
+    "showTotal": true
   }
 }

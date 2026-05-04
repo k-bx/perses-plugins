@@ -29,8 +29,10 @@ export interface PieChartOptions {
   colorPalette?: string[];
   legend?: LegendSpecOptions;
   mode?: ModeOption;
+  donut?: boolean;
   radius: number;
   showLabels?: boolean;
+  showTotal?: boolean;
   sort?: SortOption;
 }
 
@@ -41,8 +43,10 @@ export function createInitialPieChartOptions(): PieChartOptions {
     calculation: DEFAULT_CALCULATION,
     format: DEFAULT_FORMAT,
     mode: DEFAULT_MODE,
+    donut: false,
     radius: 50,
     showLabels: false,
+    showTotal: false,
     sort: DEFAULT_SORT,
   };
 }

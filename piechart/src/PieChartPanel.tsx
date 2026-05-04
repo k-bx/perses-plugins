@@ -20,7 +20,7 @@ import {
   useChartsTheme,
   useId,
 } from '@perses-dev/components';
-import { CalculationsMap, CalculationType, DEFAULT_LEGEND, TimeSeriesData } from '@perses-dev/core';
+import { CalculationsMap, CalculationType, DEFAULT_LEGEND, TimeSeries, TimeSeriesData } from '@perses-dev/core';
 import { PanelProps, validateLegendSpec } from '@perses-dev/plugin-system';
 import merge from 'lodash/merge';
 import { ReactElement, useMemo, useRef, useState } from 'react';
@@ -33,13 +33,23 @@ export type PieChartPanelProps = PanelProps<PieChartOptions, TimeSeriesData>;
 
 export function PieChartPanel(props: PieChartPanelProps): ReactElement | null {
   const {
-    spec: { calculation, sort, mode, format: formatOptions, legend: pieChartLegend, colorPalette: colorPalette },
+    spec: {
+      calculation,
+      sort,
+      donut,
+      mode,
+      radius,
+      format: formatOptions,
+      legend: pieChartLegend,
+      colorPalette: colorPalette,
+      showTotal,
+    },
     contentDimensions,
     queryResults,
   } = props;
   const chartsTheme = useChartsTheme();
   const chartId = useId('time-series-panel');
-  const seriesNames = queryResults.flatMap((result) => result?.data.series?.map((series) => series.name) || []);
+  const seriesNames = queryResults.flatMap((result) => result?.data.series?.map(getPieSliceName) || []);
 
   // Memoize the color list so it only regenerates when color/palette/series count changes
   const colorList = useMemo(() => {
@@ -53,13 +63,14 @@ export function PieChartPanel(props: PieChartPanelProps): ReactElement | null {
       const series = result?.data.series ?? [];
 
       series.forEach((seriesData, seriesIndex) => {
-        const seriesId = `${chartId}${seriesData.name}${seriesIndex}${queryIndex}`;
+        const seriesName = getPieSliceName(seriesData);
+        const seriesId = `${chartId}${seriesName}${seriesIndex}${queryIndex}`;
         const seriesColor = colorList[queryIndex * series.length + seriesIndex] ?? '#ff0000';
 
         const seriesItem = {
           id: seriesId,
           value: calculate(seriesData.values) ?? null,
-          name: seriesData.formattedName ?? '',
+          name: seriesName,
           itemStyle: {
             color: seriesColor,
           },
@@ -145,9 +156,12 @@ export function PieChartPanel(props: PieChartPanelProps): ReactElement | null {
                 data={pieChartData}
                 width={width}
                 height={height}
+                donut={donut}
                 mode={mode}
+                radius={radius}
                 formatOptions={formatOptions}
                 showLabels={Boolean(props.spec.showLabels)}
+                showTotal={showTotal}
               />
             </Box>
           );
@@ -155,4 +169,13 @@ export function PieChartPanel(props: PieChartPanelProps): ReactElement | null {
       </ContentWithLegend>
     </Box>
   );
+}
+
+function getPieSliceName(seriesData: TimeSeries): string {
+  const labels = seriesData.labels ?? {};
+  const labelEntries = Object.entries(labels);
+  if (labelEntries.length === 1) {
+    return labelEntries[0]?.[1] ?? seriesData.formattedName ?? seriesData.name;
+  }
+  return seriesData.formattedName ?? seriesData.name;
 }
