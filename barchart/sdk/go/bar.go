@@ -55,17 +55,34 @@ const (
 	StackTotalValueLabelMode ValueLabelMode = "stackTotal"
 )
 
+type LegendPosition string
+
+const (
+	TopLegendPosition    LegendPosition = "top"
+	RightLegendPosition  LegendPosition = "right"
+	BottomLegendPosition LegendPosition = "bottom"
+	LeftLegendPosition   LegendPosition = "left"
+	HiddenLegendPosition LegendPosition = "hidden"
+)
+
+type Legend struct {
+	Position LegendPosition `json:"position,omitempty" yaml:"position,omitempty"`
+}
+
 type PluginSpec struct {
-	Calculation    common.Calculation `json:"calculation" yaml:"calculation"`
-	Format         *common.Format     `json:"format,omitempty" yaml:"format,omitempty"`
-	Sort           Sort               `json:"sort,omitempty" yaml:"sort,omitempty"`
-	Mode           Mode               `json:"mode,omitempty" yaml:"mode,omitempty"`
-	Orientation    Orientation        `json:"orientation,omitempty" yaml:"orientation,omitempty"`
-	GroupBy        []string           `json:"groupBy,omitempty" yaml:"groupBy,omitempty"`
-	IsStacked      bool               `json:"isStacked,omitempty" yaml:"isStacked,omitempty"`
-	ShowValues     bool               `json:"showValues,omitempty" yaml:"showValues,omitempty"`
-	ValueLabelMode ValueLabelMode     `json:"valueLabelMode,omitempty" yaml:"valueLabelMode,omitempty"`
-	PercentageLine *PercentageLine    `json:"percentageLine,omitempty" yaml:"percentageLine,omitempty"`
+	Calculation          common.Calculation `json:"calculation" yaml:"calculation"`
+	Format               *common.Format     `json:"format,omitempty" yaml:"format,omitempty"`
+	Sort                 Sort               `json:"sort,omitempty" yaml:"sort,omitempty"`
+	Mode                 Mode               `json:"mode,omitempty" yaml:"mode,omitempty"`
+	Orientation          Orientation        `json:"orientation,omitempty" yaml:"orientation,omitempty"`
+	GroupBy              []string           `json:"groupBy,omitempty" yaml:"groupBy,omitempty"`
+	IsStacked            bool               `json:"isStacked,omitempty" yaml:"isStacked,omitempty"`
+	ShowValues           bool               `json:"showValues,omitempty" yaml:"showValues,omitempty"`
+	ValueLabelMode       ValueLabelMode     `json:"valueLabelMode,omitempty" yaml:"valueLabelMode,omitempty"`
+	ShowHorizontalGrid   bool               `json:"showHorizontalGrid,omitempty" yaml:"showHorizontalGrid,omitempty"`
+	RotateCategoryLabels bool               `json:"rotateCategoryLabels,omitempty" yaml:"rotateCategoryLabels,omitempty"`
+	Legend               *Legend            `json:"legend,omitempty" yaml:"legend,omitempty"`
+	PercentageLine       *PercentageLine    `json:"percentageLine,omitempty" yaml:"percentageLine,omitempty"`
 }
 
 type Option func(plugin *Builder) error

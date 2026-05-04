@@ -52,6 +52,9 @@ import {
   DEFAULT_GROUP_BY,
   DEFAULT_SHOW_VALUES,
   DEFAULT_VALUE_LABEL_MODE,
+  DEFAULT_SHOW_HORIZONTAL_GRID,
+  DEFAULT_ROTATE_CATEGORY_LABELS,
+  DEFAULT_LEGEND,
 } from './bar-chart-model';
 
 export function BarChartOptionsEditorSettings(props: BarChartOptionsEditorProps): ReactElement {
@@ -101,6 +104,9 @@ export function BarChartOptionsEditorSettings(props: BarChartOptionsEditorProps)
         draft.orientation = DEFAULT_ORIENTATION;
         draft.showValues = DEFAULT_SHOW_VALUES;
         draft.valueLabelMode = DEFAULT_VALUE_LABEL_MODE;
+        draft.showHorizontalGrid = DEFAULT_SHOW_HORIZONTAL_GRID;
+        draft.rotateCategoryLabels = DEFAULT_ROTATE_CATEGORY_LABELS;
+        draft.legend = { ...DEFAULT_LEGEND };
         draft.percentageLine = { ...DEFAULT_PERCENTAGE_LINE };
       })
     );
@@ -124,6 +130,9 @@ export function BarChartOptionsEditorSettings(props: BarChartOptionsEditorProps)
   const isStacked = value.isStacked ?? DEFAULT_IS_STACKED;
   const showValues = value.showValues ?? DEFAULT_SHOW_VALUES;
   const valueLabelMode = value.valueLabelMode ?? DEFAULT_VALUE_LABEL_MODE;
+  const showHorizontalGrid = value.showHorizontalGrid ?? DEFAULT_SHOW_HORIZONTAL_GRID;
+  const rotateCategoryLabels = value.rotateCategoryLabels ?? DEFAULT_ROTATE_CATEGORY_LABELS;
+  const legend = merge({}, DEFAULT_LEGEND, value.legend);
   const percentageLine = merge({}, DEFAULT_PERCENTAGE_LINE, value.percentageLine);
 
   return (
@@ -149,6 +158,25 @@ export function BarChartOptionsEditorSettings(props: BarChartOptionsEditorProps)
           >
             <ToggleButton value="horizontal">Horizontal</ToggleButton>
             <ToggleButton value="vertical">Vertical</ToggleButton>
+          </ToggleButtonGroup>
+          <ToggleButtonGroup
+            exclusive
+            size="small"
+            value={legend.position}
+            onChange={(_, v) =>
+              v &&
+              onChange(
+                produce(value, (draft: BarChartOptions) => {
+                  draft.legend = { ...legend, position: v };
+                })
+              )
+            }
+          >
+            <ToggleButton value="top">Legend top</ToggleButton>
+            <ToggleButton value="right">Right</ToggleButton>
+            <ToggleButton value="bottom">Bottom</ToggleButton>
+            <ToggleButton value="left">Left</ToggleButton>
+            <ToggleButton value="hidden">Hidden</ToggleButton>
           </ToggleButtonGroup>
         </OptionsEditorGroup>
         <OptionsEditorGroup title="Stacking">
@@ -208,6 +236,39 @@ export function BarChartOptionsEditorSettings(props: BarChartOptionsEditorProps)
               />
             }
             label="Show values"
+          />
+          <FormControlLabel
+            control={
+              <Switch
+                size="small"
+                checked={showHorizontalGrid}
+                onChange={(e) =>
+                  onChange(
+                    produce(value, (draft: BarChartOptions) => {
+                      draft.showHorizontalGrid = e.target.checked;
+                    })
+                  )
+                }
+              />
+            }
+            label="Show horizontal grid"
+          />
+          <FormControlLabel
+            control={
+              <Switch
+                size="small"
+                checked={rotateCategoryLabels}
+                disabled={value.orientation === 'horizontal'}
+                onChange={(e) =>
+                  onChange(
+                    produce(value, (draft: BarChartOptions) => {
+                      draft.rotateCategoryLabels = e.target.checked;
+                    })
+                  )
+                }
+              />
+            }
+            label="Rotate category labels"
           />
           <ToggleButtonGroup
             exclusive

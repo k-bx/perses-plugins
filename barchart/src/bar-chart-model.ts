@@ -23,6 +23,11 @@ export const DEFAULT_GROUP_BY: string[] = [];
 export const DEFAULT_IS_STACKED = false;
 export const DEFAULT_SHOW_VALUES = false;
 export const DEFAULT_VALUE_LABEL_MODE: BarChartValueLabelMode = 'stackTotal';
+export const DEFAULT_SHOW_HORIZONTAL_GRID = true;
+export const DEFAULT_ROTATE_CATEGORY_LABELS = false;
+export const DEFAULT_LEGEND: BarChartLegendOptions = {
+  position: 'top',
+};
 export const DEFAULT_PERCENTAGE_LINE: BarChartPercentageLineOptions = {
   enabled: false,
   numerator: '',
@@ -38,6 +43,11 @@ export interface BarChartPercentageLineOptions {
 }
 
 export type BarChartValueLabelMode = 'segment' | 'stackTotal';
+export type BarChartLegendPosition = 'top' | 'right' | 'bottom' | 'left' | 'hidden';
+
+export interface BarChartLegendOptions {
+  position?: BarChartLegendPosition;
+}
 
 /**
  * The schema for a BarChart panel.
@@ -59,6 +69,9 @@ export interface BarChartOptions {
   isStacked?: boolean;
   showValues?: boolean;
   valueLabelMode?: BarChartValueLabelMode;
+  showHorizontalGrid?: boolean;
+  rotateCategoryLabels?: boolean;
+  legend?: BarChartLegendOptions;
   percentageLine?: BarChartPercentageLineOptions;
 }
 
@@ -78,6 +91,9 @@ export function createInitialBarChartOptions(): BarChartOptions {
     isStacked: DEFAULT_IS_STACKED,
     showValues: DEFAULT_SHOW_VALUES,
     valueLabelMode: DEFAULT_VALUE_LABEL_MODE,
+    showHorizontalGrid: DEFAULT_SHOW_HORIZONTAL_GRID,
+    rotateCategoryLabels: DEFAULT_ROTATE_CATEGORY_LABELS,
+    legend: { ...DEFAULT_LEGEND },
     percentageLine: { ...DEFAULT_PERCENTAGE_LINE },
   };
 }

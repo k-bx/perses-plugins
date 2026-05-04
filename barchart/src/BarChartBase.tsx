@@ -19,7 +19,7 @@ import { BarChart as EChartsBarChart, LineChart as EChartsLineChart } from 'echa
 import { GridComponent, DatasetComponent, TitleComponent, TooltipComponent, LegendComponent } from 'echarts/components';
 import { CanvasRenderer } from 'echarts/renderers';
 import { Box } from '@mui/material';
-import { BarChartValueLabelMode } from './bar-chart-model';
+import { BarChartLegendOptions, BarChartLegendPosition, BarChartValueLabelMode } from './bar-chart-model';
 
 use([
   EChartsBarChart,
@@ -35,19 +35,146 @@ use([
 const BAR_WIN_WIDTH = 14;
 const BAR_GAP = 6;
 const LEGEND_HEIGHT = 20;
-const VERTICAL_CATEGORY_LABEL_ROTATION = 45;
+const LEGEND_SIDE_WIDTH = 120;
+const VERTICAL_CATEGORY_LABEL_ROTATION = 35;
 const VERTICAL_CATEGORY_LABEL_WIDTH = 120;
-const VERTICAL_CATEGORY_AXIS_BOTTOM = 120;
-function getVerticalCategoryAxis(): EChartsCoreOption {
+const VERTICAL_CATEGORY_AXIS_COMPACT_BOTTOM = 48;
+const VERTICAL_CATEGORY_AXIS_ROTATED_BOTTOM = 72;
+const VERTICAL_CATEGORY_AXIS_ROTATED_WITH_BOTTOM_LEGEND = 136;
+const VERTICAL_VALUE_AXIS_WIDTH = 44;
+const VERTICAL_PERCENTAGE_AXIS_WIDTH = 48;
+const TOOLTIP_STYLE = {
+  backgroundColor: 'rgba(255, 255, 255, 0.96)',
+  borderColor: 'rgba(17, 24, 39, 0.18)',
+  borderWidth: 1,
+  textStyle: {
+    color: '#111827',
+  },
+  extraCssText: 'box-shadow: 0 8px 24px rgba(15, 23, 42, 0.18); border-radius: 4px;',
+};
+
+function getPaletteColor(theme: unknown, index: number): string | undefined {
+  return Array.isArray(theme) && typeof theme[index % theme.length] === 'string'
+    ? theme[index % theme.length]
+    : undefined;
+}
+
+function getReadableTextColor(backgroundColor: string | undefined): string {
+  const rgb = parseRgbColor(backgroundColor);
+  if (!rgb) {
+    return '#111827';
+  }
+
+  const [r, g, b]: [number, number, number] = rgb.map((value) => {
+    const channel = value / 255;
+    return channel <= 0.03928 ? channel / 12.92 : Math.pow((channel + 0.055) / 1.055, 2.4);
+  }) as [number, number, number];
+  const luminance = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+  return luminance > 0.45 ? '#111827' : '#ffffff';
+}
+
+function parseRgbColor(color: string | undefined): [number, number, number] | undefined {
+  if (!color) {
+    return undefined;
+  }
+
+  const hexMatch = color.match(/^#([0-9a-f]{3}|[0-9a-f]{6})$/i);
+  if (hexMatch) {
+    const hex = hexMatch[1]!;
+    const normalizedHex =
+      hex.length === 3
+        ? hex
+            .split('')
+            .map((char) => char + char)
+            .join('')
+        : hex;
+    const value = Number.parseInt(normalizedHex, 16);
+    return [(value >> 16) & 255, (value >> 8) & 255, value & 255];
+  }
+
+  const rgbMatch = color.match(/^rgba?\((\d+),\s*(\d+),\s*(\d+)/i);
+  if (rgbMatch) {
+    return [Number(rgbMatch[1]), Number(rgbMatch[2]), Number(rgbMatch[3])];
+  }
+
+  return undefined;
+}
+
+function getLegendOption(legendPosition: BarChartLegendPosition): EChartsCoreOption['legend'] {
+  if (legendPosition === 'hidden') {
+    return { show: false };
+  }
+
+  const base = {
+    type: 'scroll',
+    show: true,
+    itemGap: 8,
+    itemWidth: 12,
+    itemHeight: 8,
+    textStyle: {
+      fontSize: 11,
+    },
+  };
+
+  switch (legendPosition) {
+    case 'top':
+      return { ...base, top: 0, left: 'center', orient: 'horizontal' };
+    case 'right':
+      return { ...base, top: 0, right: 0, bottom: 0, orient: 'vertical' };
+    case 'left':
+      return { ...base, top: 0, left: 0, bottom: 0, orient: 'vertical' };
+    case 'bottom':
+    default:
+      return { ...base, bottom: 0, left: 'center', orient: 'horizontal' };
+  }
+}
+
+function getGridSpacing(
+  legendPosition: BarChartLegendPosition,
+  isHorizontal: boolean,
+  showPercentageLine: boolean,
+  rotateCategoryLabels: boolean
+): { top?: number; right?: number | string; bottom?: number; left?: number | string } {
+  const top = legendPosition === 'top' ? LEGEND_HEIGHT * 2 : showPercentageLine ? 40 : undefined;
+  const bottom = getGridBottomSpacing(legendPosition, isHorizontal, rotateCategoryLabels);
+  const left = legendPosition === 'left' ? LEGEND_SIDE_WIDTH : isHorizontal ? '5%' : VERTICAL_VALUE_AXIS_WIDTH;
+  const right = legendPosition === 'right' ? LEGEND_SIDE_WIDTH : isHorizontal ? '5%' : VERTICAL_PERCENTAGE_AXIS_WIDTH;
+
+  return { top, right, bottom, left };
+}
+
+function getGridBottomSpacing(
+  legendPosition: BarChartLegendPosition,
+  isHorizontal: boolean,
+  rotateCategoryLabels: boolean
+): number | undefined {
+  if (isHorizontal) {
+    return legendPosition === 'bottom' ? LEGEND_HEIGHT * 2 : undefined;
+  }
+
+  if (legendPosition === 'bottom' && rotateCategoryLabels) {
+    return VERTICAL_CATEGORY_AXIS_ROTATED_WITH_BOTTOM_LEGEND;
+  }
+
+  if (legendPosition === 'bottom') {
+    return LEGEND_HEIGHT * 2 + VERTICAL_CATEGORY_AXIS_COMPACT_BOTTOM;
+  }
+
+  return rotateCategoryLabels ? VERTICAL_CATEGORY_AXIS_ROTATED_BOTTOM : VERTICAL_CATEGORY_AXIS_COMPACT_BOTTOM;
+}
+function getVerticalCategoryAxis(rotateCategoryLabels: boolean): EChartsCoreOption {
   return {
     type: 'category',
     splitLine: { show: false },
     axisLabel: {
       interval: 0,
-      rotate: VERTICAL_CATEGORY_LABEL_ROTATION,
+      rotate: rotateCategoryLabels ? VERTICAL_CATEGORY_LABEL_ROTATION : 0,
+      align: 'center',
+      verticalAlign: 'top',
+      margin: rotateCategoryLabels ? 16 : 8,
       hideOverlap: false,
       overflow: 'truncate',
-      width: VERTICAL_CATEGORY_LABEL_WIDTH,
+      width: rotateCategoryLabels ? VERTICAL_CATEGORY_LABEL_WIDTH : undefined,
     },
   };
 }
@@ -100,6 +227,9 @@ export interface BarChartBaseProps {
   orientation?: 'horizontal' | 'vertical';
   showValues?: boolean;
   valueLabelMode?: BarChartValueLabelMode;
+  showHorizontalGrid?: boolean;
+  rotateCategoryLabels?: boolean;
+  legend?: BarChartLegendOptions;
 }
 
 export function BarChartBase(props: BarChartBaseProps): ReactElement {
@@ -114,9 +244,13 @@ export function BarChartBase(props: BarChartBaseProps): ReactElement {
     orientation = 'horizontal',
     showValues = false,
     valueLabelMode = 'stackTotal',
+    showHorizontalGrid = true,
+    rotateCategoryLabels = false,
+    legend,
   } = props;
   const chartsTheme = useChartsTheme();
   const isHorizontal = orientation === 'horizontal';
+  const legendPosition = legend?.position ?? 'bottom';
 
   const option: EChartsCoreOption = useMemo(() => {
     if (groupedData) {
@@ -135,19 +269,23 @@ export function BarChartBase(props: BarChartBaseProps): ReactElement {
         const isStackTotalLabelSeries = isStacked && seriesIndex === series.length - 1;
         const showSegmentLabel = !isStacked || valueLabelMode === 'segment';
         const showStackTotalLabel = isStacked && valueLabelMode === 'stackTotal' && isStackTotalLabelSeries;
+        const seriesColor = getPaletteColor(chartsTheme.echartsTheme, seriesIndex);
+        const showInsideSegmentLabel = isStacked && valueLabelMode === 'segment';
         return {
           name: s.name,
           type: 'bar',
           stack: isStacked ? 'total' : undefined,
           data: s.values,
+          color: seriesColor,
           label: {
             show: showValues && (showSegmentLabel || showStackTotalLabel),
-            position: isStacked && valueLabelMode === 'segment' ? 'inside' : isHorizontal ? 'right' : 'top',
+            position: showInsideSegmentLabel ? 'inside' : isHorizontal ? 'right' : 'top',
             formatter: (params: { data: number | null; dataIndex: number }): string =>
               formatBarLabel(showStackTotalLabel ? stackTotals[params.dataIndex] : params.data, format),
+            color: showInsideSegmentLabel ? getReadableTextColor(seriesColor) : undefined,
             fontWeight: 'bold',
-            textBorderColor: '#fff',
-            textBorderWidth: 2,
+            textBorderColor: showInsideSegmentLabel ? 'transparent' : '#fff',
+            textBorderWidth: showInsideSegmentLabel ? 0 : 2,
           },
           itemStyle: { borderRadius: isStacked ? 0 : 4 },
         };
@@ -187,11 +325,11 @@ export function BarChartBase(props: BarChartBaseProps): ReactElement {
         : barSeries;
       return {
         title: { show: false },
-        legend: { type: 'scroll', show: true, bottom: 0 },
+        legend: getLegendOption(legendPosition),
         xAxis: isHorizontal
           ? getFormattedAxis({}, format)
           : {
-              ...getVerticalCategoryAxis(),
+              ...getVerticalCategoryAxis(rotateCategoryLabels),
               data: categories,
             },
         yAxis: isHorizontal
@@ -209,15 +347,19 @@ export function BarChartBase(props: BarChartBaseProps): ReactElement {
                   name: percentageLineSeries.name,
                   min: 0,
                   max: 100,
-                  splitLine: { show: false },
+                  splitLine: { show: showHorizontalGrid },
                   axisLabel: {
                     formatter: (value: number): string => `${value}%`,
                   },
                 },
               ]
-            : getFormattedAxis({}, format),
+            : {
+                ...getFormattedAxis({}, format),
+                splitLine: { show: showHorizontalGrid },
+              },
         series: chartSeries,
         tooltip: {
+          ...TOOLTIP_STYLE,
           trigger: 'axis',
           axisPointer: { type: 'shadow' },
           appendToBody: true,
@@ -243,11 +385,8 @@ export function BarChartBase(props: BarChartBaseProps): ReactElement {
           },
         },
         grid: {
-          top: showPercentageLine ? 40 : undefined,
-          left: '5%',
-          right: '5%',
-          bottom: isHorizontal ? LEGEND_HEIGHT * 2 : VERTICAL_CATEGORY_AXIS_BOTTOM,
-          containLabel: !isHorizontal,
+          ...getGridSpacing(legendPosition, isHorizontal, showPercentageLine, rotateCategoryLabels),
+          containLabel: false,
         },
       };
     }
@@ -269,7 +408,7 @@ export function BarChartBase(props: BarChartBaseProps): ReactElement {
           source: source,
         },
       ],
-      xAxis: isHorizontal ? getFormattedAxis({}, format) : getVerticalCategoryAxis(),
+      xAxis: isHorizontal ? getFormattedAxis({}, format) : getVerticalCategoryAxis(rotateCategoryLabels),
       yAxis: isHorizontal
         ? { type: 'category', splitLine: { show: false }, axisLabel: { overflow: 'truncate', width: width / 3 } }
         : getFormattedAxis({}, format),
@@ -300,6 +439,7 @@ export function BarChartBase(props: BarChartBaseProps): ReactElement {
         },
       },
       tooltip: {
+        ...TOOLTIP_STYLE,
         appendToBody: true,
         confine: true,
         formatter: (params: { name: string; data: number[] }) =>
@@ -309,11 +449,29 @@ export function BarChartBase(props: BarChartBaseProps): ReactElement {
       grid: {
         left: '5%',
         right: '5%',
-        bottom: isHorizontal ? undefined : VERTICAL_CATEGORY_AXIS_BOTTOM,
-        containLabel: !isHorizontal,
+        bottom: isHorizontal
+          ? undefined
+          : rotateCategoryLabels
+            ? VERTICAL_CATEGORY_AXIS_ROTATED_BOTTOM
+            : VERTICAL_CATEGORY_AXIS_COMPACT_BOTTOM,
+        containLabel: false,
       },
     };
-  }, [data, groupedData, isStacked, chartsTheme, width, mode, format, isHorizontal, showValues, valueLabelMode]);
+  }, [
+    data,
+    groupedData,
+    isStacked,
+    chartsTheme,
+    width,
+    mode,
+    format,
+    isHorizontal,
+    showValues,
+    valueLabelMode,
+    showHorizontalGrid,
+    rotateCategoryLabels,
+    legendPosition,
+  ]);
 
   const numGroupedRows = groupedData
     ? isStacked

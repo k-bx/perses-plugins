@@ -7,6 +7,11 @@
       "decimalPlaces": 2
     },
     "sort": "desc",
-    "mode": "value"
+    "mode": "value",
+    "showHorizontalGrid": true,
+    "rotateCategoryLabels": true,
+    "legend": {
+      "position": "top"
+    }
   }
 }

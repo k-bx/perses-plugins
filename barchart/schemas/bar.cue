@@ -28,6 +28,11 @@ spec: close({
 	isStacked?: bool
 	showValues?: bool
 	valueLabelMode?: "segment" | "stackTotal"
+	showHorizontalGrid?: bool
+	rotateCategoryLabels?: bool
+	legend?: close({
+		position?: "top" | "right" | "bottom" | "left" | "hidden"
+	})
 	percentageLine?: close({
 		enabled?: bool
 		numerator?: string

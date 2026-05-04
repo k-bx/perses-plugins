@@ -34,6 +34,9 @@ export function BarChartPanel(props: BarChartPanelProps): ReactElement | null {
       orientation = 'horizontal',
       showValues = false,
       valueLabelMode,
+      showHorizontalGrid,
+      rotateCategoryLabels,
+      legend,
       percentageLine,
     },
     contentDimensions,
@@ -155,6 +158,9 @@ export function BarChartPanel(props: BarChartPanelProps): ReactElement | null {
         orientation={orientation}
         showValues={showValues}
         valueLabelMode={valueLabelMode}
+        showHorizontalGrid={showHorizontalGrid}
+        rotateCategoryLabels={rotateCategoryLabels}
+        legend={legend}
       />
     </Box>
   );

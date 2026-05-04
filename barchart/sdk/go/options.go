@@ -80,6 +80,27 @@ func WithValueLabelMode(valueLabelMode ValueLabelMode) Option {
 	}
 }
 
+func WithHorizontalGridShown(showHorizontalGrid bool) Option {
+	return func(builder *Builder) error {
+		builder.ShowHorizontalGrid = showHorizontalGrid
+		return nil
+	}
+}
+
+func WithCategoryLabelsRotated(rotateCategoryLabels bool) Option {
+	return func(builder *Builder) error {
+		builder.RotateCategoryLabels = rotateCategoryLabels
+		return nil
+	}
+}
+
+func WithLegend(legend Legend) Option {
+	return func(builder *Builder) error {
+		builder.Legend = &legend
+		return nil
+	}
+}
+
 func WithPercentageLine(percentageLine PercentageLine) Option {
 	return func(builder *Builder) error {
 		builder.PercentageLine = &percentageLine
