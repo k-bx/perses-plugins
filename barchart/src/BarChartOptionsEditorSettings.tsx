@@ -51,6 +51,7 @@ import {
   DEFAULT_IS_STACKED,
   DEFAULT_GROUP_BY,
   DEFAULT_SHOW_VALUES,
+  DEFAULT_VALUE_LABEL_MODE,
 } from './bar-chart-model';
 
 export function BarChartOptionsEditorSettings(props: BarChartOptionsEditorProps): ReactElement {
@@ -99,6 +100,7 @@ export function BarChartOptionsEditorSettings(props: BarChartOptionsEditorProps)
         draft.isStacked = DEFAULT_IS_STACKED;
         draft.orientation = DEFAULT_ORIENTATION;
         draft.showValues = DEFAULT_SHOW_VALUES;
+        draft.valueLabelMode = DEFAULT_VALUE_LABEL_MODE;
         draft.percentageLine = { ...DEFAULT_PERCENTAGE_LINE };
       })
     );
@@ -121,6 +123,7 @@ export function BarChartOptionsEditorSettings(props: BarChartOptionsEditorProps)
   const groupBy = value.groupBy ?? DEFAULT_GROUP_BY;
   const isStacked = value.isStacked ?? DEFAULT_IS_STACKED;
   const showValues = value.showValues ?? DEFAULT_SHOW_VALUES;
+  const valueLabelMode = value.valueLabelMode ?? DEFAULT_VALUE_LABEL_MODE;
   const percentageLine = merge({}, DEFAULT_PERCENTAGE_LINE, value.percentageLine);
 
   return (
@@ -206,6 +209,26 @@ export function BarChartOptionsEditorSettings(props: BarChartOptionsEditorProps)
             }
             label="Show values"
           />
+          <ToggleButtonGroup
+            exclusive
+            size="small"
+            value={valueLabelMode}
+            onChange={(_, v) =>
+              v &&
+              onChange(
+                produce(value, (draft: BarChartOptions) => {
+                  draft.valueLabelMode = v;
+                })
+              )
+            }
+          >
+            <ToggleButton value="stackTotal" disabled={!showValues || !isStacked}>
+              Stack total
+            </ToggleButton>
+            <ToggleButton value="segment" disabled={!showValues || !isStacked}>
+              Segment
+            </ToggleButton>
+          </ToggleButtonGroup>
           <FormControlLabel
             control={
               <Switch

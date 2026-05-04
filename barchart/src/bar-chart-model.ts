@@ -22,6 +22,7 @@ export const DEFAULT_ORIENTATION: 'horizontal' | 'vertical' = 'horizontal';
 export const DEFAULT_GROUP_BY: string[] = [];
 export const DEFAULT_IS_STACKED = false;
 export const DEFAULT_SHOW_VALUES = false;
+export const DEFAULT_VALUE_LABEL_MODE: BarChartValueLabelMode = 'stackTotal';
 export const DEFAULT_PERCENTAGE_LINE: BarChartPercentageLineOptions = {
   enabled: false,
   numerator: '',
@@ -35,6 +36,8 @@ export interface BarChartPercentageLineOptions {
   denominator?: string;
   name?: string;
 }
+
+export type BarChartValueLabelMode = 'segment' | 'stackTotal';
 
 /**
  * The schema for a BarChart panel.
@@ -55,6 +58,7 @@ export interface BarChartOptions {
   groupBy?: string[];
   isStacked?: boolean;
   showValues?: boolean;
+  valueLabelMode?: BarChartValueLabelMode;
   percentageLine?: BarChartPercentageLineOptions;
 }
 
@@ -73,6 +77,7 @@ export function createInitialBarChartOptions(): BarChartOptions {
     groupBy: DEFAULT_GROUP_BY,
     isStacked: DEFAULT_IS_STACKED,
     showValues: DEFAULT_SHOW_VALUES,
+    valueLabelMode: DEFAULT_VALUE_LABEL_MODE,
     percentageLine: { ...DEFAULT_PERCENTAGE_LINE },
   };
 }

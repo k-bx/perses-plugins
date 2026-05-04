@@ -27,6 +27,7 @@ spec: close({
 	groupBy?: [...string]
 	isStacked?: bool
 	showValues?: bool
+	valueLabelMode?: "segment" | "stackTotal"
 	percentageLine?: close({
 		enabled?: bool
 		numerator?: string

@@ -19,6 +19,7 @@ import { BarChart as EChartsBarChart, LineChart as EChartsLineChart } from 'echa
 import { GridComponent, DatasetComponent, TitleComponent, TooltipComponent, LegendComponent } from 'echarts/components';
 import { CanvasRenderer } from 'echarts/renderers';
 import { Box } from '@mui/material';
+import { BarChartValueLabelMode } from './bar-chart-model';
 
 use([
   EChartsBarChart,
@@ -98,6 +99,7 @@ export interface BarChartBaseProps {
   isStacked?: boolean;
   orientation?: 'horizontal' | 'vertical';
   showValues?: boolean;
+  valueLabelMode?: BarChartValueLabelMode;
 }
 
 export function BarChartBase(props: BarChartBaseProps): ReactElement {
@@ -111,6 +113,7 @@ export function BarChartBase(props: BarChartBaseProps): ReactElement {
     isStacked = false,
     orientation = 'horizontal',
     showValues = false,
+    valueLabelMode = 'stackTotal',
   } = props;
   const chartsTheme = useChartsTheme();
   const isHorizontal = orientation === 'horizontal';
@@ -130,16 +133,18 @@ export function BarChartBase(props: BarChartBaseProps): ReactElement {
       );
       const barSeries = series.map((s, seriesIndex) => {
         const isStackTotalLabelSeries = isStacked && seriesIndex === series.length - 1;
+        const showSegmentLabel = !isStacked || valueLabelMode === 'segment';
+        const showStackTotalLabel = isStacked && valueLabelMode === 'stackTotal' && isStackTotalLabelSeries;
         return {
           name: s.name,
           type: 'bar',
           stack: isStacked ? 'total' : undefined,
           data: s.values,
           label: {
-            show: showValues && (!isStacked || isStackTotalLabelSeries),
-            position: isHorizontal ? 'right' : 'top',
+            show: showValues && (showSegmentLabel || showStackTotalLabel),
+            position: isStacked && valueLabelMode === 'segment' ? 'inside' : isHorizontal ? 'right' : 'top',
             formatter: (params: { data: number | null; dataIndex: number }): string =>
-              formatBarLabel(isStacked ? stackTotals[params.dataIndex] : params.data, format),
+              formatBarLabel(showStackTotalLabel ? stackTotals[params.dataIndex] : params.data, format),
             fontWeight: 'bold',
             textBorderColor: '#fff',
             textBorderWidth: 2,
@@ -308,7 +313,7 @@ export function BarChartBase(props: BarChartBaseProps): ReactElement {
         containLabel: !isHorizontal,
       },
     };
-  }, [data, groupedData, isStacked, chartsTheme, width, mode, format, isHorizontal, showValues]);
+  }, [data, groupedData, isStacked, chartsTheme, width, mode, format, isHorizontal, showValues, valueLabelMode]);
 
   const numGroupedRows = groupedData
     ? isStacked

@@ -48,6 +48,13 @@ type PercentageLine struct {
 	Name        string `json:"name,omitempty" yaml:"name,omitempty"`
 }
 
+type ValueLabelMode string
+
+const (
+	SegmentValueLabelMode    ValueLabelMode = "segment"
+	StackTotalValueLabelMode ValueLabelMode = "stackTotal"
+)
+
 type PluginSpec struct {
 	Calculation    common.Calculation `json:"calculation" yaml:"calculation"`
 	Format         *common.Format     `json:"format,omitempty" yaml:"format,omitempty"`
@@ -57,6 +64,7 @@ type PluginSpec struct {
 	GroupBy        []string           `json:"groupBy,omitempty" yaml:"groupBy,omitempty"`
 	IsStacked      bool               `json:"isStacked,omitempty" yaml:"isStacked,omitempty"`
 	ShowValues     bool               `json:"showValues,omitempty" yaml:"showValues,omitempty"`
+	ValueLabelMode ValueLabelMode     `json:"valueLabelMode,omitempty" yaml:"valueLabelMode,omitempty"`
 	PercentageLine *PercentageLine    `json:"percentageLine,omitempty" yaml:"percentageLine,omitempty"`
 }
 

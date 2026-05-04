@@ -33,6 +33,7 @@ export function BarChartPanel(props: BarChartPanelProps): ReactElement | null {
       isStacked = false,
       orientation = 'horizontal',
       showValues = false,
+      valueLabelMode,
       percentageLine,
     },
     contentDimensions,
@@ -82,7 +83,7 @@ export function BarChartPanel(props: BarChartPanelProps): ReactElement | null {
         const groupKey = groupBy.map((k) => labels[k] ?? '').join(' / ');
 
         const remainingEntries = Object.entries(labels).filter(([k]) => !groupBy.includes(k));
-        const segmentName = getSegmentName(remainingEntries, seriesData.formattedName ?? seriesData.name);
+        const segmentName = getSegmentName(remainingEntries, seriesData.name ?? seriesData.formattedName);
 
         if (!groupMap.has(groupKey)) {
           groupMap.set(groupKey, new Map());
@@ -153,6 +154,7 @@ export function BarChartPanel(props: BarChartPanelProps): ReactElement | null {
         isStacked={isStacked}
         orientation={orientation}
         showValues={showValues}
+        valueLabelMode={valueLabelMode}
       />
     </Box>
   );

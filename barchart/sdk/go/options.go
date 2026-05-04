@@ -73,6 +73,13 @@ func WithValuesShown(showValues bool) Option {
 	}
 }
 
+func WithValueLabelMode(valueLabelMode ValueLabelMode) Option {
+	return func(builder *Builder) error {
+		builder.ValueLabelMode = valueLabelMode
+		return nil
+	}
+}
+
 func WithPercentageLine(percentageLine PercentageLine) Option {
 	return func(builder *Builder) error {
 		builder.PercentageLine = &percentageLine
