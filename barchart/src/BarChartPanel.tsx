@@ -16,7 +16,7 @@ import { Box } from '@mui/material';
 import { ReactElement, useMemo } from 'react';
 import { CalculationType, CalculationsMap, TimeSeriesData } from '@perses-dev/core';
 import { PanelProps } from '@perses-dev/plugin-system';
-import { BarChartOptions } from './bar-chart-model';
+import { BarChartOptions, BarChartPercentageLineOptions, DEFAULT_PERCENTAGE_LINE } from './bar-chart-model';
 import { calculatePercentages, sortSeriesData } from './utils';
 import { BarChartBase, BarChartData, StackedBarChartData, StackedBarChartSeries } from './BarChartBase';
 
@@ -24,10 +24,21 @@ export type BarChartPanelProps = PanelProps<BarChartOptions, TimeSeriesData>;
 
 export function BarChartPanel(props: BarChartPanelProps): ReactElement | null {
   const {
-    spec: { calculation, format, sort, mode, groupBy = [], isStacked = false, orientation = 'horizontal' },
+    spec: {
+      calculation,
+      format,
+      sort,
+      mode,
+      groupBy = [],
+      isStacked = false,
+      orientation = 'horizontal',
+      showValues = false,
+      percentageLine,
+    },
     contentDimensions,
     queryResults,
   } = props;
+  const percentageLineOptions = useMemo(() => ({ ...DEFAULT_PERCENTAGE_LINE, ...percentageLine }), [percentageLine]);
 
   const chartsTheme = useChartsTheme();
   const PADDING = chartsTheme.container.padding.default;
@@ -60,6 +71,7 @@ export function BarChartPanel(props: BarChartPanelProps): ReactElement | null {
 
     const calculate = CalculationsMap[calculation as CalculationType];
     const groupMap = new Map<string, Map<string, number>>();
+    const metricValueMap = new Map<string, Map<string, number>>();
     const segmentNamesOrdered: string[] = [];
     const segmentNamesSet = new Set<string>();
 
@@ -70,10 +82,7 @@ export function BarChartPanel(props: BarChartPanelProps): ReactElement | null {
         const groupKey = groupBy.map((k) => labels[k] ?? '').join(' / ');
 
         const remainingEntries = Object.entries(labels).filter(([k]) => !groupBy.includes(k));
-        const segmentName =
-          remainingEntries.length > 0
-            ? '{' + remainingEntries.map(([k, v]) => `${k}="${v}"`).join(', ') + '}'
-            : (seriesData.formattedName ?? seriesData.name);
+        const segmentName = getSegmentName(remainingEntries, seriesData.formattedName ?? seriesData.name);
 
         if (!groupMap.has(groupKey)) {
           groupMap.set(groupKey, new Map());
@@ -83,6 +92,16 @@ export function BarChartPanel(props: BarChartPanelProps): ReactElement | null {
         const value = calculate(seriesData.values) ?? 0;
         segMap.set(segmentName, (segMap.get(segmentName) ?? 0) + value);
 
+        if (!metricValueMap.has(groupKey)) {
+          metricValueMap.set(groupKey, new Map());
+        }
+        const metricMap = metricValueMap.get(groupKey);
+        if (metricMap) {
+          for (const metricName of getMetricKeys(labels, seriesData.name, segmentName)) {
+            metricMap.set(metricName, (metricMap.get(metricName) ?? 0) + value);
+          }
+        }
+
         if (!segmentNamesSet.has(segmentName)) {
           segmentNamesSet.add(segmentName);
           segmentNamesOrdered.push(segmentName);
@@ -91,8 +110,7 @@ export function BarChartPanel(props: BarChartPanelProps): ReactElement | null {
     }
 
     if (groupMap.size === 0) return null;
-    const getTotalValue = (cat: string): number =>
-      Array.from(groupMap.get(cat)?.values() ?? []).reduce((a, b) => a + b, 0);
+    const getTotalValue = (cat: string): number => sumMapValues(groupMap.get(cat));
 
     let categories = Array.from(groupMap.keys());
     if (sort === 'asc') {
@@ -113,8 +131,10 @@ export function BarChartPanel(props: BarChartPanelProps): ReactElement | null {
       return { name: segName, values };
     });
 
-    return { categories, series };
-  }, [queryResults, groupBy, sort, mode, calculation]);
+    const percentageLineData = buildPercentageLineData(categories, groupMap, metricValueMap, percentageLineOptions);
+
+    return { categories, series, percentageLine: percentageLineData };
+  }, [queryResults, groupBy, sort, mode, calculation, percentageLineOptions]);
 
   if (contentDimensions === undefined) return null;
 
@@ -132,7 +152,82 @@ export function BarChartPanel(props: BarChartPanelProps): ReactElement | null {
         groupedData={stackedBarChartData}
         isStacked={isStacked}
         orientation={orientation}
+        showValues={showValues}
       />
     </Box>
   );
+}
+
+function getSegmentName(remainingEntries: Array<[string, string]>, fallbackName = ''): string {
+  if (remainingEntries.length === 1) {
+    const metricEntry = remainingEntries[0];
+    if (metricEntry !== undefined && isMetricLabelName(metricEntry[0])) {
+      return metricEntry[1];
+    }
+  }
+
+  if (remainingEntries.length > 0) {
+    return '{' + remainingEntries.map(([k, v]) => `${k}="${v}"`).join(', ') + '}';
+  }
+
+  return fallbackName;
+}
+
+function getMetricKeys(labels: Record<string, string>, seriesName: string | undefined, segmentName: string): string[] {
+  const keys = new Set<string>();
+  for (const metricLabelName of ['metric', '__metric__']) {
+    const metricLabelValue = labels[metricLabelName];
+    if (metricLabelValue) {
+      keys.add(metricLabelValue);
+    }
+  }
+  if (seriesName) {
+    keys.add(seriesName);
+  }
+  if (segmentName) {
+    keys.add(segmentName);
+  }
+  return Array.from(keys);
+}
+
+function isMetricLabelName(labelName: string): boolean {
+  return labelName === 'metric' || labelName === '__metric__';
+}
+
+function buildPercentageLineData(
+  categories: string[],
+  groupMap: Map<string, Map<string, number>>,
+  metricValueMap: Map<string, Map<string, number>>,
+  percentageLine: BarChartPercentageLineOptions
+): StackedBarChartData['percentageLine'] {
+  if (!percentageLine.enabled) return undefined;
+
+  const numeratorName = percentageLine.numerator?.trim();
+  if (!numeratorName) return undefined;
+
+  const denominatorName = percentageLine.denominator?.trim();
+  const values = categories.map((category) => {
+    const metrics = metricValueMap.get(category);
+    const numerator = metrics?.get(numeratorName);
+    const denominator = denominatorName ? metrics?.get(denominatorName) : sumMapValues(groupMap.get(category));
+
+    if (numerator === undefined || denominator === undefined || denominator <= 0) {
+      return null;
+    }
+
+    return (numerator / denominator) * 100;
+  });
+
+  if (!values.some((value) => value !== null)) {
+    return undefined;
+  }
+
+  return {
+    name: percentageLine.name?.trim() || DEFAULT_PERCENTAGE_LINE.name || 'Percentage',
+    values,
+  };
+}
+
+function sumMapValues(values?: Map<string, number>): number {
+  return Array.from(values?.values() ?? []).reduce((a, b) => a + b, 0);
 }

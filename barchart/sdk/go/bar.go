@@ -41,14 +41,23 @@ const (
 	VerticalOrientation   Orientation = "vertical"
 )
 
+type PercentageLine struct {
+	Enabled     bool   `json:"enabled,omitempty" yaml:"enabled,omitempty"`
+	Numerator   string `json:"numerator,omitempty" yaml:"numerator,omitempty"`
+	Denominator string `json:"denominator,omitempty" yaml:"denominator,omitempty"`
+	Name        string `json:"name,omitempty" yaml:"name,omitempty"`
+}
+
 type PluginSpec struct {
-	Calculation common.Calculation `json:"calculation" yaml:"calculation"`
-	Format      *common.Format     `json:"format,omitempty" yaml:"format,omitempty"`
-	Sort        Sort               `json:"sort,omitempty" yaml:"sort,omitempty"`
-	Mode        Mode               `json:"mode,omitempty" yaml:"mode,omitempty"`
-	Orientation Orientation        `json:"orientation,omitempty" yaml:"orientation,omitempty"`
-	GroupBy     []string           `json:"groupBy,omitempty" yaml:"groupBy,omitempty"`
-	IsStacked   bool               `json:"isStacked,omitempty" yaml:"isStacked,omitempty"`
+	Calculation    common.Calculation `json:"calculation" yaml:"calculation"`
+	Format         *common.Format     `json:"format,omitempty" yaml:"format,omitempty"`
+	Sort           Sort               `json:"sort,omitempty" yaml:"sort,omitempty"`
+	Mode           Mode               `json:"mode,omitempty" yaml:"mode,omitempty"`
+	Orientation    Orientation        `json:"orientation,omitempty" yaml:"orientation,omitempty"`
+	GroupBy        []string           `json:"groupBy,omitempty" yaml:"groupBy,omitempty"`
+	IsStacked      bool               `json:"isStacked,omitempty" yaml:"isStacked,omitempty"`
+	ShowValues     bool               `json:"showValues,omitempty" yaml:"showValues,omitempty"`
+	PercentageLine *PercentageLine    `json:"percentageLine,omitempty" yaml:"percentageLine,omitempty"`
 }
 
 type Option func(plugin *Builder) error

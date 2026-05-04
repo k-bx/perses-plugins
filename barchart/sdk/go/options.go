@@ -65,3 +65,17 @@ func WithStacked(isStacked bool) Option {
 		return nil
 	}
 }
+
+func WithValuesShown(showValues bool) Option {
+	return func(builder *Builder) error {
+		builder.ShowValues = showValues
+		return nil
+	}
+}
+
+func WithPercentageLine(percentageLine PercentageLine) Option {
+	return func(builder *Builder) error {
+		builder.PercentageLine = &percentageLine
+		return nil
+	}
+}

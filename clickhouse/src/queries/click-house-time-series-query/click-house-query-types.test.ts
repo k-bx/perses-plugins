@@ -178,4 +178,82 @@ describe('ClickHouseTimeSeriesQuery', () => {
 
     expect(response.stepMs).toBe(24 * 60 * 60 * 1000);
   });
+
+  it('should return labeled instant series for categorical SQL results without a time column', async () => {
+    (clickhouseStubClient.query as jest.Mock).mockResolvedValueOnce({
+      status: 'success',
+      meta: [
+        { name: 'crew', type: 'Nullable(String)' },
+        { name: 'total_flights', type: 'UInt64' },
+        { name: 'successful_flights', type: 'UInt64' },
+      ],
+      data: [
+        { crew: 'Alpha', total_flights: '264', successful_flights: '144' },
+        { crew: 'Bravo', total_flights: '42', successful_flights: '7' },
+      ],
+    });
+
+    const response = await ClickHouseTimeSeriesQuery.getTimeSeriesData(
+      {
+        query:
+          "SELECT crew, sum(flights_count) AS total_flights, sumIf(flights_count, strike_result = 'hit') AS successful_flights FROM flight WHERE ts BETWEEN '{start}' AND '{end}' GROUP BY crew",
+      },
+      createStubContext()
+    );
+
+    expect(response.stepMs).toBe(30 * 1000);
+    expect(response.series).toEqual([
+      {
+        name: 'total_flights',
+        formattedName: 'total_flights{crew="Alpha",metric="total_flights"}',
+        labels: { crew: 'Alpha', metric: 'total_flights' },
+        values: [[new Date('2025-01-02T00:00:00.000Z').getTime(), 264]],
+      },
+      {
+        name: 'successful_flights',
+        formattedName: 'successful_flights{crew="Alpha",metric="successful_flights"}',
+        labels: { crew: 'Alpha', metric: 'successful_flights' },
+        values: [[new Date('2025-01-02T00:00:00.000Z').getTime(), 144]],
+      },
+      {
+        name: 'total_flights',
+        formattedName: 'total_flights{crew="Bravo",metric="total_flights"}',
+        labels: { crew: 'Bravo', metric: 'total_flights' },
+        values: [[new Date('2025-01-02T00:00:00.000Z').getTime(), 42]],
+      },
+      {
+        name: 'successful_flights',
+        formattedName: 'successful_flights{crew="Bravo",metric="successful_flights"}',
+        labels: { crew: 'Bravo', metric: 'successful_flights' },
+        values: [[new Date('2025-01-02T00:00:00.000Z').getTime(), 7]],
+      },
+    ]);
+  });
+
+  it('should use ClickHouse metadata to keep numeric-looking strings as labels', async () => {
+    (clickhouseStubClient.query as jest.Mock).mockResolvedValueOnce({
+      status: 'success',
+      meta: [
+        { name: 'crew', type: 'String' },
+        { name: 'flights', type: 'Nullable(UInt64)' },
+      ],
+      data: [{ crew: '101', flights: '3' }],
+    });
+
+    const response = await ClickHouseTimeSeriesQuery.getTimeSeriesData(
+      {
+        query: "SELECT crew, count() AS flights FROM flight WHERE ts BETWEEN '{start}' AND '{end}' GROUP BY crew",
+      },
+      createStubContext()
+    );
+
+    expect(response.series).toEqual([
+      {
+        name: 'flights',
+        formattedName: 'flights{crew="101"}',
+        labels: { crew: '101' },
+        values: [[new Date('2025-01-02T00:00:00.000Z').getTime(), 3]],
+      },
+    ]);
+  });
 });

@@ -39,3 +39,27 @@ Build the plugin for distribution:
 ```bash
 npm run build
 ```
+
+## Query shapes
+
+The time series query supports two result shapes:
+
+- Time-based rows: include a `time` column and one or more numeric metric columns.
+- Categorical rows: omit the `time` column. Non-numeric columns become labels and numeric columns become instant
+  series values, which can be used by panels such as Table and Bar Chart.
+
+Example categorical query:
+
+```sql
+SELECT
+  crew,
+  sum(flights_count) AS total_flights,
+  sumIf(flights_count, strike_result IN ['destroyed', 'damaged', 'hit', 'forbid']) AS successful_flights
+FROM flight
+WHERE timestamp BETWEEN '{start}' AND '{end}'
+GROUP BY crew
+ORDER BY total_flights DESC
+```
+
+For Bar Chart, set `Group By Labels` to `crew`. If the query returns multiple numeric columns, the plugin adds a
+`metric` label so each metric can be rendered as a separate bar segment/series.

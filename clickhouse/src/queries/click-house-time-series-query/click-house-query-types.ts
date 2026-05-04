@@ -12,6 +12,7 @@
 // limitations under the License.
 
 import { DatasourceSelector } from '@perses-dev/core';
+import { ClickHouseColumnMeta } from '../../model/click-house-client';
 
 export interface ClickHouseTimeSeriesQuerySpec {
   query: string;
@@ -22,5 +23,6 @@ export interface ClickHouseTimeSeriesQuerySpec {
 export type DatasourceQueryResponse = {
   status: string;
   data: unknown;
+  meta?: ClickHouseColumnMeta[];
   warnings?: string[];
 };

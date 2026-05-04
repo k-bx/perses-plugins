@@ -21,6 +21,20 @@ export const DEFAULT_MODE: ModeOption = 'value';
 export const DEFAULT_ORIENTATION: 'horizontal' | 'vertical' = 'horizontal';
 export const DEFAULT_GROUP_BY: string[] = [];
 export const DEFAULT_IS_STACKED = false;
+export const DEFAULT_SHOW_VALUES = false;
+export const DEFAULT_PERCENTAGE_LINE: BarChartPercentageLineOptions = {
+  enabled: false,
+  numerator: '',
+  denominator: '',
+  name: 'Percentage',
+};
+
+export interface BarChartPercentageLineOptions {
+  enabled?: boolean;
+  numerator?: string;
+  denominator?: string;
+  name?: string;
+}
 
 /**
  * The schema for a BarChart panel.
@@ -40,6 +54,8 @@ export interface BarChartOptions {
   orientation?: 'horizontal' | 'vertical';
   groupBy?: string[];
   isStacked?: boolean;
+  showValues?: boolean;
+  percentageLine?: BarChartPercentageLineOptions;
 }
 
 export type BarChartOptionsEditorProps = OptionsEditorProps<BarChartOptions>;
@@ -56,5 +72,7 @@ export function createInitialBarChartOptions(): BarChartOptions {
     orientation: DEFAULT_ORIENTATION,
     groupBy: DEFAULT_GROUP_BY,
     isStacked: DEFAULT_IS_STACKED,
+    showValues: DEFAULT_SHOW_VALUES,
+    percentageLine: { ...DEFAULT_PERCENTAGE_LINE },
   };
 }

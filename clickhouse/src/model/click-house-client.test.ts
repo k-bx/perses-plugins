@@ -35,11 +35,14 @@ describe('ClickHouse client', () => {
   it('should send interpolated query to ClickHouse', async () => {
     const fetchMock = jest.fn<Promise<Pick<Response, 'ok' | 'json'>>, [string, RequestInit?]>(async () => ({
       ok: true,
-      json: jest.fn(async () => ({ data: [] })),
+      json: jest.fn(async () => ({
+        meta: [{ name: 'count', type: 'UInt64' }],
+        data: [{ count: '42' }],
+      })),
     }));
     global.fetch = fetchMock as unknown as typeof fetch;
 
-    await query(
+    const response = await query(
       {
         query: "SELECT * FROM logs WHERE timestamp BETWEEN '{start}' AND '{end}'",
         start: '2025-01-01 00:00:00',
@@ -56,5 +59,10 @@ describe('ClickHouse client', () => {
     expect(url.searchParams.get('query')).toBe(
       "SELECT * FROM logs WHERE timestamp BETWEEN '2025-01-01 00:00:00' AND '2025-01-02 00:00:00' FORMAT JSON"
     );
+    expect(response).toEqual({
+      status: 'success',
+      meta: [{ name: 'count', type: 'UInt64' }],
+      data: [{ count: '42' }],
+    });
   });
 });

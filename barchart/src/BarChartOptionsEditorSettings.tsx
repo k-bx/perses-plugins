@@ -41,6 +41,8 @@ import merge from 'lodash/merge';
 import { MouseEventHandler, ReactElement } from 'react';
 import {
   BarChartOptions,
+  BarChartPercentageLineOptions,
+  DEFAULT_PERCENTAGE_LINE,
   BarChartOptionsEditorProps,
   DEFAULT_FORMAT,
   DEFAULT_MODE,
@@ -48,6 +50,7 @@ import {
   DEFAULT_SORT,
   DEFAULT_IS_STACKED,
   DEFAULT_GROUP_BY,
+  DEFAULT_SHOW_VALUES,
 } from './bar-chart-model';
 
 export function BarChartOptionsEditorSettings(props: BarChartOptionsEditorProps): ReactElement {
@@ -95,6 +98,20 @@ export function BarChartOptionsEditorSettings(props: BarChartOptionsEditorProps)
         draft.groupBy = DEFAULT_GROUP_BY;
         draft.isStacked = DEFAULT_IS_STACKED;
         draft.orientation = DEFAULT_ORIENTATION;
+        draft.showValues = DEFAULT_SHOW_VALUES;
+        draft.percentageLine = { ...DEFAULT_PERCENTAGE_LINE };
+      })
+    );
+  };
+
+  const handlePercentageLineChange = (newValue: Partial<BarChartPercentageLineOptions>): void => {
+    onChange(
+      produce(value, (draft: BarChartOptions) => {
+        draft.percentageLine = {
+          ...DEFAULT_PERCENTAGE_LINE,
+          ...draft.percentageLine,
+          ...newValue,
+        };
       })
     );
   };
@@ -103,6 +120,8 @@ export function BarChartOptionsEditorSettings(props: BarChartOptionsEditorProps)
   const format = merge({}, DEFAULT_FORMAT, value.format);
   const groupBy = value.groupBy ?? DEFAULT_GROUP_BY;
   const isStacked = value.isStacked ?? DEFAULT_IS_STACKED;
+  const showValues = value.showValues ?? DEFAULT_SHOW_VALUES;
+  const percentageLine = merge({}, DEFAULT_PERCENTAGE_LINE, value.percentageLine);
 
   return (
     <OptionsEditorGrid>
@@ -170,6 +189,56 @@ export function BarChartOptionsEditorSettings(props: BarChartOptionsEditorProps)
             }
             label="Stack bars"
           />
+          <FormControlLabel
+            control={
+              <Switch
+                size="small"
+                checked={showValues}
+                disabled={groupBy.length === 0}
+                onChange={(e) =>
+                  onChange(
+                    produce(value, (draft: BarChartOptions) => {
+                      draft.showValues = e.target.checked;
+                    })
+                  )
+                }
+              />
+            }
+            label="Show values"
+          />
+          <FormControlLabel
+            control={
+              <Switch
+                size="small"
+                checked={percentageLine.enabled ?? false}
+                disabled={groupBy.length === 0}
+                onChange={(e) => handlePercentageLineChange({ enabled: e.target.checked })}
+              />
+            }
+            label="Show percentage line"
+          />
+          {percentageLine.enabled && (
+            <>
+              <TextField
+                size="small"
+                label="Line Name"
+                value={percentageLine.name ?? ''}
+                onChange={(e) => handlePercentageLineChange({ name: e.target.value })}
+              />
+              <TextField
+                size="small"
+                label="Numerator Metric"
+                value={percentageLine.numerator ?? ''}
+                onChange={(e) => handlePercentageLineChange({ numerator: e.target.value })}
+              />
+              <TextField
+                size="small"
+                label="Denominator Metric"
+                value={percentageLine.denominator ?? ''}
+                onChange={(e) => handlePercentageLineChange({ denominator: e.target.value })}
+              />
+            </>
+          )}
         </OptionsEditorGroup>
       </OptionsEditorColumn>
       <OptionsEditorColumn>

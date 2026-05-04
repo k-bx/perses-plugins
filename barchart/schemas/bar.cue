@@ -26,4 +26,11 @@ spec: close({
 	orientation?: "horizontal" | "vertical"
 	groupBy?: [...string]
 	isStacked?: bool
+	showValues?: bool
+	percentageLine?: close({
+		enabled?: bool
+		numerator?: string
+		denominator?: string
+		name?: string
+	})
 })

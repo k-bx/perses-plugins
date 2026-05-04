@@ -25,9 +25,15 @@ export interface ClickHouseQueryOptions {
   headers?: RequestHeaders;
 }
 
+export interface ClickHouseColumnMeta {
+  name: string;
+  type: string;
+}
+
 export interface ClickHouseQueryResponse {
   status: 'success' | 'error';
   data: unknown;
+  meta?: ClickHouseColumnMeta[];
 }
 
 export interface ClickHouseClient {
@@ -88,6 +94,7 @@ export async function query(
     return {
       status: 'success',
       data: body.data || body,
+      meta: body.meta,
     };
   } catch (e) {
     throw new Error(`ClickHouse query failed: ${e}`);

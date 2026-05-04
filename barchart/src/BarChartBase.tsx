@@ -15,13 +15,14 @@ import { ReactElement, useMemo } from 'react';
 import { EChart, ModeOption, getFormattedAxis, useChartsTheme } from '@perses-dev/components';
 import { FormatOptions, formatValue } from '@perses-dev/core';
 import { use, EChartsCoreOption } from 'echarts/core';
-import { BarChart as EChartsBarChart } from 'echarts/charts';
+import { BarChart as EChartsBarChart, LineChart as EChartsLineChart } from 'echarts/charts';
 import { GridComponent, DatasetComponent, TitleComponent, TooltipComponent, LegendComponent } from 'echarts/components';
 import { CanvasRenderer } from 'echarts/renderers';
 import { Box } from '@mui/material';
 
 use([
   EChartsBarChart,
+  EChartsLineChart,
   GridComponent,
   DatasetComponent,
   TitleComponent,
@@ -33,6 +34,38 @@ use([
 const BAR_WIN_WIDTH = 14;
 const BAR_GAP = 6;
 const LEGEND_HEIGHT = 20;
+const VERTICAL_CATEGORY_LABEL_ROTATION = 45;
+const VERTICAL_CATEGORY_LABEL_WIDTH = 120;
+const VERTICAL_CATEGORY_AXIS_BOTTOM = 120;
+function getVerticalCategoryAxis(): EChartsCoreOption {
+  return {
+    type: 'category',
+    splitLine: { show: false },
+    axisLabel: {
+      interval: 0,
+      rotate: VERTICAL_CATEGORY_LABEL_ROTATION,
+      hideOverlap: false,
+      overflow: 'truncate',
+      width: VERTICAL_CATEGORY_LABEL_WIDTH,
+    },
+  };
+}
+
+function formatBarLabel(value: number | null | undefined, format: FormatOptions): string {
+  if (value === null || value === undefined || value === 0) {
+    return '';
+  }
+
+  return formatValue(value, format);
+}
+
+function formatPercentageLabel(value: number | null | undefined): string {
+  if (value === null || value === undefined) {
+    return '';
+  }
+
+  return `${value.toFixed(2)}%`;
+}
 
 export interface BarChartData {
   label: string;
@@ -44,9 +77,15 @@ export interface StackedBarChartSeries {
   values: Array<number | null>;
 }
 
+export interface PercentageLineSeries {
+  name: string;
+  values: Array<number | null>;
+}
+
 export interface StackedBarChartData {
   categories: string[];
   series: StackedBarChartSeries[];
+  percentageLine?: PercentageLineSeries;
 }
 
 export interface BarChartBaseProps {
@@ -58,6 +97,7 @@ export interface BarChartBaseProps {
   groupedData?: StackedBarChartData | null;
   isStacked?: boolean;
   orientation?: 'horizontal' | 'vertical';
+  showValues?: boolean;
 }
 
 export function BarChartBase(props: BarChartBaseProps): ReactElement {
@@ -70,6 +110,7 @@ export function BarChartBase(props: BarChartBaseProps): ReactElement {
     groupedData,
     isStacked = false,
     orientation = 'horizontal',
+    showValues = false,
   } = props;
   const chartsTheme = useChartsTheme();
   const isHorizontal = orientation === 'horizontal';
@@ -77,17 +118,76 @@ export function BarChartBase(props: BarChartBaseProps): ReactElement {
   const option: EChartsCoreOption = useMemo(() => {
     if (groupedData) {
       if (!groupedData.series.length || !groupedData.categories.length) return chartsTheme.noDataOption;
-      const { categories, series } = groupedData;
+      const { categories, series, percentageLine } = groupedData;
+      const percentageLineSeries =
+        !isHorizontal && percentageLine !== undefined && percentageLine.values.some((value) => value !== null)
+          ? percentageLine
+          : undefined;
+      const showPercentageLine = percentageLineSeries !== undefined;
+      const percentageLineName = percentageLineSeries?.name;
+      const stackTotals = categories.map((_category, categoryIndex) =>
+        series.reduce((total, currentSeries) => total + (currentSeries.values[categoryIndex] ?? 0), 0)
+      );
+      const barSeries = series.map((s, seriesIndex) => {
+        const isStackTotalLabelSeries = isStacked && seriesIndex === series.length - 1;
+        return {
+          name: s.name,
+          type: 'bar',
+          stack: isStacked ? 'total' : undefined,
+          data: s.values,
+          label: {
+            show: showValues && (!isStacked || isStackTotalLabelSeries),
+            position: isHorizontal ? 'right' : 'top',
+            formatter: (params: { data: number | null; dataIndex: number }): string =>
+              formatBarLabel(isStacked ? stackTotals[params.dataIndex] : params.data, format),
+            fontWeight: 'bold',
+            textBorderColor: '#fff',
+            textBorderWidth: 2,
+          },
+          itemStyle: { borderRadius: isStacked ? 0 : 4 },
+        };
+      });
+      const chartSeries = percentageLineSeries
+        ? [
+            ...barSeries,
+            {
+              name: percentageLineSeries.name,
+              type: 'line',
+              yAxisIndex: 1,
+              data: percentageLineSeries.values,
+              symbol: 'circle',
+              symbolSize: 8,
+              showSymbol: true,
+              showAllSymbol: true,
+              clip: false,
+              itemStyle: {
+                color: '#6A9739',
+              },
+              lineStyle: {
+                width: 2,
+              },
+              label: {
+                show: true,
+                position: 'top',
+                formatter: (params: { data: number | null }): string => formatPercentageLabel(params.data),
+                fontWeight: 'bold',
+                textBorderColor: '#fff',
+                textBorderWidth: 2,
+              },
+              labelLayout: {
+                hideOverlap: false,
+              },
+            },
+          ]
+        : barSeries;
       return {
         title: { show: false },
         legend: { type: 'scroll', show: true, bottom: 0 },
         xAxis: isHorizontal
           ? getFormattedAxis({}, format)
           : {
-              type: 'category',
+              ...getVerticalCategoryAxis(),
               data: categories,
-              splitLine: { show: false },
-              axisLabel: { overflow: 'truncate', width: width / 3 },
             },
         yAxis: isHorizontal
           ? {
@@ -96,15 +196,22 @@ export function BarChartBase(props: BarChartBaseProps): ReactElement {
               splitLine: { show: false },
               axisLabel: { overflow: 'truncate', width: width / 3 },
             }
-          : getFormattedAxis({}, format),
-        series: series.map((s) => ({
-          name: s.name,
-          type: 'bar',
-          stack: isStacked ? 'total' : undefined,
-          data: s.values,
-          label: { show: false },
-          itemStyle: { borderRadius: isStacked ? 0 : 4 },
-        })),
+          : percentageLineSeries
+            ? [
+                getFormattedAxis({}, format),
+                {
+                  type: 'value',
+                  name: percentageLineSeries.name,
+                  min: 0,
+                  max: 100,
+                  splitLine: { show: false },
+                  axisLabel: {
+                    formatter: (value: number): string => `${value}%`,
+                  },
+                },
+              ]
+            : getFormattedAxis({}, format),
+        series: chartSeries,
         tooltip: {
           trigger: 'axis',
           axisPointer: { type: 'shadow' },
@@ -120,13 +227,23 @@ export function BarChartBase(props: BarChartBaseProps): ReactElement {
               .map(
                 (p) =>
                   `<span style="display:inline-block;margin-right:5px;border-radius:50%;width:10px;height:10px;background-color:${p.color}"></span>` +
-                  `${p.seriesName}: <b>${formatValue(p.data, format)}</b>`
+                  `${p.seriesName}: <b>${
+                    percentageLineName !== undefined && p.seriesName === percentageLineName
+                      ? formatPercentageLabel(p.data)
+                      : formatValue(p.data, format)
+                  }</b>`
               )
               .join('<br/>');
             return header + rows;
           },
         },
-        grid: { left: '5%', right: '5%', bottom: LEGEND_HEIGHT * 2 },
+        grid: {
+          top: showPercentageLine ? 40 : undefined,
+          left: '5%',
+          right: '5%',
+          bottom: isHorizontal ? LEGEND_HEIGHT * 2 : VERTICAL_CATEGORY_AXIS_BOTTOM,
+          containLabel: !isHorizontal,
+        },
       };
     }
 
@@ -147,9 +264,7 @@ export function BarChartBase(props: BarChartBaseProps): ReactElement {
           source: source,
         },
       ],
-      xAxis: isHorizontal
-        ? getFormattedAxis({}, format)
-        : { type: 'category', splitLine: { show: false }, axisLabel: { overflow: 'truncate', width: width / 3 } },
+      xAxis: isHorizontal ? getFormattedAxis({}, format) : getVerticalCategoryAxis(),
       yAxis: isHorizontal
         ? { type: 'category', splitLine: { show: false }, axisLabel: { overflow: 'truncate', width: width / 3 } }
         : getFormattedAxis({}, format),
@@ -189,9 +304,11 @@ export function BarChartBase(props: BarChartBaseProps): ReactElement {
       grid: {
         left: '5%',
         right: '5%',
+        bottom: isHorizontal ? undefined : VERTICAL_CATEGORY_AXIS_BOTTOM,
+        containLabel: !isHorizontal,
       },
     };
-  }, [data, groupedData, isStacked, chartsTheme, width, mode, format, isHorizontal]);
+  }, [data, groupedData, isStacked, chartsTheme, width, mode, format, isHorizontal, showValues]);
 
   const numGroupedRows = groupedData
     ? isStacked
